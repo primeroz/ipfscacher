@@ -1,3 +1,5 @@
+local utils = require "utils"
+
 local red = redis:new()
 
 red:set_timeout(1000) -- 1 second
@@ -19,7 +21,7 @@ if not value then
 	return ngx.exit(400)
 end
 
--- Extract Hashes from Request
+-- Extract Hashes from Request and generate key_ID
 local hashes={}
 if not value.hashes then
 	ngx.log(ngx.ERR, "Missing key Hashes in data")
@@ -29,15 +31,7 @@ for k,v in pairs(value.hashes) do
 	table.insert(hashes, v)
 end
 
--- calculate key id
-local resty_sha256 = require "resty.sha256"
-local str = require "resty.string"
-local sha256 = resty_sha256:new()
-for k,v in pairs(hashes) do
-	sha256:update(v)
-end
-local digest = sha256:final()
-local key = tostring(str.to_hex(digest))
+local key = utils.hashes_to_id(hashes)
 
 -- Insert new Key into REDIS 
 local ok,err = red:set(key,cjson.encode(hashes))
